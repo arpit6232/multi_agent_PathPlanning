@@ -309,3 +309,47 @@ class CBS(object):
         
         return path
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("param", help="input file constaining map and obsctcles")
+    parser.add_argument("output", help="output file with the schedule")
+    args = parser.parse_args()
+
+
+    # Read from the input file 
+    with open(args.param, 'r') as param_file:
+        try:
+            param = yaml.load(param_file, Loader=yaml.FullLoader)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    
+    dimension = param["map"]["dimensions"]
+    obstacles = param["map"]["obstacles"]
+    agents = param['agents']
+
+    env = Environment(dimension, agents, obsctacles)
+
+    # Search
+    cbs = CBS(env)
+    solution = cbs.search()
+    if not solution:
+        print(" Solution not found ")
+        return 
+
+    # Writing to the output file 
+    with open(args.output, 'r') as output_yaml:
+        try:
+            output = yaml.load(output_yaml, Loader=yaml.FullLoader)
+        except yaml.YAMLError as exc:
+            print(exc)
+        
+    
+    output["schedule"] = solution
+    output["cost"] = env.compute_solution_cost(solution)
+    with open(args.output, 'w') as output_yaml:
+        yaml.safe_dump(output, output_yaml)
+
+if __name__ == "__main__":
+    main()
+    
