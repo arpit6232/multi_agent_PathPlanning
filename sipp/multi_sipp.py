@@ -1,20 +1,33 @@
+"""
+
+Extension of SIPP to multi-robot scenarios
+
+"""
+
 import argparse
-import yaml 
-from math import fabs 
-from graph_generation import SippGraph,State 
-from sipp import SippPlanner 
+import yaml
+from math import fabs
+from graph_generation import SippGraph, State
+from sipp import SippPlanner
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("map", help="input file containing map and dynamic obstacles")
     parser.add_argument("output", help="output file with the schedule")
-
+    
     args = parser.parse_args()
-
-    # Read map 
+    
+    # Read Map
     with open(args.map, 'r') as map_file:
         try:
             map = yaml.load(map_file, Loader=yaml.FullLoader)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    # Output file
+    with open(args.output, 'r') as output_yaml:
+        try:
+            output = yaml.load(output_yaml, Loader=yaml.FullLoader)
         except yaml.YAMLError as exc:
             print(exc)
 
@@ -31,6 +44,6 @@ def main():
         else: 
             print("Plan not found")
 
+
 if __name__ == "__main__":
     main()
-

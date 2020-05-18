@@ -1,6 +1,10 @@
-import sys 
+"""
+
+Construction of Temporal Plan Graph (TPG)
+"""
+import sys
 sys.path.insert(0, '../')
-import yaml 
+import yaml
 import argparse
 
 from cbs.cbs import Location
@@ -8,28 +12,23 @@ from cbs.cbs import Location
 class Vertex:
     def __init__(self, agent, location, time):
         self.agent = agent
-        self.location = location 
-        self.time = time 
+        self.location = location
+        self.time = time
         self.cost = 0
-
     def __str__(self):
         return str(self.agent + ' t: ' + str(self.time) + ': ' + str(self.location)  )
-
     def __eq__(self, other):
         return self.agent == other.agent and self.location == other.location and self.time == other.time
-    
     def __hash__(self):
-        return hash(str(self.agent) + str(self.location) + str(self.time))
+        return hash(str(self.agent)+str(self.location) + str(self.time))
 
 class Edge:
     def __init__(self, vertex_a, vertex_b):
-        self.vertex_a = vertex_a 
+        self.vertex_a = vertex_a
         self.vertex_b = vertex_b
         self.edge_length = self.compute_edge_length()
-
     def __str__(self):
         return str(self.vertex_a)  + ', ' + str(self.vertex_b)
-    
     def compute_edge_length(self):
         return ((self.vertex_a.location.x - self.vertex_b.location.x ) ** 2 + \
             (self.vertex_a.location.y - self.vertex_b.location.y ) ** 2) ** 0.5
@@ -37,7 +36,7 @@ class Edge:
 class TemporalPlanGraph:
     def __init__(self, schedule):
 
-        self.delta = 0.2 # Safety margin
+        self.delta = 0.2 # safety distance
 
         self.schedule = schedule
 
@@ -48,13 +47,12 @@ class TemporalPlanGraph:
         self.generate_tpg()
         self.augment_graph()
 
-        self.initial_status = []
-        self.final_status = []
-
+        self.initial_states = []
+        self.final_states = []
         self.generate_initial_final_states()
 
     def generate_tpg(self):
-        # Creating Type -1 Edges 
+        # Creating type-1 edges
         for agent, plan in self.schedule.items():
             vertex = Vertex(agent, Location(plan[0]['x'], plan[0]['y']), plan[0]['t'])
             self.vertices.append(vertex)
@@ -66,12 +64,11 @@ class TemporalPlanGraph:
                     vertex_a = Vertex(agent, location_a, plan[i_prev]['t'])
                     vertex_b = Vertex(agent, location_b, plan[i+1]['t'])
                     self.vertices.append(vertex_b)
-
+                    
                     edge_ab = Edge(vertex_a, vertex_b)
                     self.edges_type_1.append(edge_ab)
                     i_prev = i+1
-
-        # Creating Type-2 edges 
+        # Creating type-2 edges
         for agent_j, plan_j in self.schedule.items():
             for t_j in range(len(plan_j)):
                 s_tj = Location(plan_j[t_j]['x'], plan_j[t_j]['y'])
@@ -87,9 +84,9 @@ class TemporalPlanGraph:
                                     self.edges_type_2.append(edge)
 
     def augment_graph(self):
-        self.augment_edges = []
+        self.augmented_edges = []
         self.augmented_vertices = self.vertices
-
+        
         for edge in self.edges_type_1:
             v1 = self.return_safety_vertex(edge.vertex_a, 1)
             v2 = self.return_safety_vertex(edge.vertex_b, -1)
@@ -98,7 +95,9 @@ class TemporalPlanGraph:
 
             edge1 = Edge(edge.vertex_a, v1)
             edge2 = Edge(v1, v2)
-            edge3 = Edge(v2, edge.vertex_b)   
+            edge3 = Edge(v2, edge.vertex_b)
+
+            self.augmented_edges += [edge1,edge2,edge3]
 
         for edge_t2 in self.edges_type_2:
             v1 = self.return_safety_vertex(edge_t2.vertex_a, 1)
@@ -106,10 +105,9 @@ class TemporalPlanGraph:
 
             if not (v1 and v2):
                 continue
-            
             edge4 = Edge(v1, v2)
             edge4.edge_length = 0
-            self.augment_edges.append(edge4)
+            self.augmented_edges.append(edge4)
 
     def return_safety_vertex(self, vertex, side=-1):
         """
@@ -152,12 +150,13 @@ class TemporalPlanGraph:
             self.initial_states.append(init_state)
             self.final_states.append(final_state)
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("output", help="output file with the schedule")
     args = parser.parse_args()
 
-    # Reading from the file 
+    # Read from input file
     with open(args.output, 'r') as output_file:
         try:
             output = yaml.load(output_file, Loader=yaml.FullLoader)
@@ -167,6 +166,7 @@ def main():
     tpg = TemporalPlanGraph(output['schedule'])
 
     tpg.augment_graph()
+
 
 if __name__ == "__main__":
     main()

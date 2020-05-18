@@ -1,15 +1,21 @@
-import argparse 
-import yaml 
-from bisect import bisect 
+"""
+
+Graph generation for sipp 
+"""
+
+import argparse
+import yaml
+from bisect import bisect
 
 class State(object):
     def __init__(self, position=(-1,-1), t=0, interval=(0,float('inf'))):
         self.position = tuple(position)
-        self.time = t 
-        self.interval = interval 
+        self.time = t
+        self.interval = interval
 
 class SippGrid(object):
     def __init__(self):
+        # self.position = ()
         self.interval_list = [(0, float('inf'))]
         self.f = float('inf')
         self.g = float('inf')
@@ -17,18 +23,17 @@ class SippGrid(object):
 
     def split_interval(self, t, last_t = False):
         """
-        Function to geenerate safe-intervals 
+        Function to generate safe-intervals
         """
         for interval in self.interval_list:
             if last_t:
-                if t <= interval[0]:
+                if t<=interval[0]:
                     self.interval_list.remove(interval)
-                elif t > interval[1]:
+                elif t>interval[1]:
                     continue
                 else:
                     self.interval_list.remove(interval)
                     self.interval_list.append((interval[0], t-1))
-
             else:
                 if t == interval[0]:
                     self.interval_list.remove(interval)
@@ -49,7 +54,7 @@ class SippGraph(object):
         self.map = map
         self.dimensions = map["map"]["dimensions"]
 
-        self.obstacles = [tuple(v) for v in map["map"]["obstacles"]]
+        self.obstacles = [tuple(v) for v in map["map"]["obstacles"]]        
         self.dyn_obstacles = map["dynamic_obstacles"]
 
         self.sipp_graph = {}
@@ -63,17 +68,18 @@ class SippGraph(object):
                 self.sipp_graph.update(grid_dict)
 
     def init_intervals(self):
-        if not self.dyn_obstacles: return 
+        if not self.dyn_obstacles: return
         for schedule in self.dyn_obstacles.values():
-            # for location in schedule 
+            # for location in schedule:
             for i in range(len(schedule)):
                 location = schedule[i]
                 last_t = i == len(schedule)-1
 
-                position = (location["x"], location["y"])
+                position = (location["x"],location["y"])
                 t = location["t"]
 
                 self.sipp_graph[position].split_interval(t, last_t)
+                # print(str(position) + str(self.sipp_graph[position].interval_list))     
 
     def is_valid_position(self, position):
         dim_check = position[0] in range(self.dimensions[0]) and  position[1] in range(self.dimensions[1])
@@ -98,6 +104,7 @@ class SippGraph(object):
 
         return neighbour_list
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("map", help="input file containing map and dynamic dyn_obstacles")
@@ -110,6 +117,10 @@ def main():
             print(exc)
 
     graph = SippGraph(map)
+    # print(graph.get_valid_neighbours((0,0)))
+    # print(graph.sipp_graph[(1,1)].interval_list)
+    # print(graph.get_valid_neighbours((1,2)))
 
 if __name__ == "__main__":
     main()
+

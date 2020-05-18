@@ -1,3 +1,9 @@
+"""
+
+SIPP implementation  
+
+"""
+
 import argparse
 import yaml
 from math import fabs
